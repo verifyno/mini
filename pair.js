@@ -1023,14 +1023,24 @@ async function setupPOPKIDCommandHandlers(socket, number) {
     }
 
     // Work type restrictions
-    if (!isOwner && userConfig.WORK_TYPE === "private") return;
-    if (!isOwner && isGroup && userConfig.WORK_TYPE === "inbox") return;
-    if (!isOwner && !isGroup && userConfig.WORK_TYPE === "groups") return;
+    const workType = (userConfig.WORK_TYPE || defaultConfig.WORK_TYPE || 'public').toLowerCase();
+    const blockedByWorkType = !isOwner && (
+      workType === "private" ||
+      (isGroup && workType === "inbox") ||
+      (!isGroup && workType === "groups")
+    );
+
+    if (blockedByWorkType) {
+      if (isCmd) {
+        await reply(`⚠️ Bot is currently in *${workType}* mode.`);
+      }
+      return;
+    }
 
     // Process commands
     if (isCmd) {
       const events = require('./command');
-      const cmdName = isCmd ? body.slice(1).trim().split(" ")[0].toLowerCase() : false;
+      const cmdName = isCmd ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase() : false;
       const cmd = events.commands.find((cmd) => cmd.pattern === (cmdName)) || events.commands.find((cmd) => cmd.alias && cmd.alias.includes(cmdName));
       
       if (cmd) {
@@ -1039,7 +1049,10 @@ async function setupPOPKIDCommandHandlers(socket, number) {
           cmd.function(socket, msg, m, { from, quoted, body, isCmd, command, args, q: args.join(' '), text: args.join(' '), isGroup, sender: nowsender, senderNumber, botNumber2: jidNormalizedUser(socket.user.id), botNumber, pushname: msg.pushName || 'Sin Nombre', isMe: botNumber.includes(senderNumber), isOwner, isCreator: isOwner, groupMetadata: isGroup ? await socket.groupMetadata(from).catch(e => {}) : '', groupName: isGroup ? (await socket.groupMetadata(from).catch(e => {})).subject : '', participants: isGroup ? (await socket.groupMetadata(from).catch(e => {})).participants : '', groupAdmins: isGroup ? await getGroupAdmins((await socket.groupMetadata(from).catch(e => {})).participants) : '', isBotAdmins: isGroup ? (await getGroupAdmins((await socket.groupMetadata(from).catch(e => {})).participants)).includes(jidNormalizedUser(socket.user.id)) : false, isAdmins: isGroup ? (await getGroupAdmins((await socket.groupMetadata(from).catch(e => {})).participants)).includes(nowsender) : false, reply });
         } catch (e) {
           console.error("[PLUGIN ERROR] " + e);
+          await reply("❌ Command execution failed. Check logs.");
         }
+      } else {
+        await reply(`❌ Unknown command: *${cmdName}*`);
       }
     }
   });
