@@ -3,9 +3,14 @@
   "description": "WhatsApp bot + pairing web endpoint",
   "repository": "",
   "logo": "",
-  "keywords": ["node", "whatsapp", "bot", "baileys"],
+  "keywords": [
+    "node",
+    "whatsapp",
+    "bot",
+    "baileys"
+  ],
   "addons": [
-    "heroku-postgresql:mini"
+    "heroku-postgresql:essential-0"
   ],
   "env": {
     "DATABASE_URL": {
