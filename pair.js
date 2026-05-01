@@ -960,13 +960,18 @@ async function setupPOPKIDCommandHandlers(socket, number) {
     const botNumber = socket.user.id.split(':')[0];
     const isbot = botNumber.includes(senderNumber);
     const isOwner = isbot ? isbot : developers.includes(senderNumber);
-    const prefix = userConfig.PREFIX || defaultConfig.PREFIX;
+    const configuredPrefix = userConfig.PREFIX || defaultConfig.PREFIX || '.';
+    const supportedPrefixes = Array.from(new Set([configuredPrefix, '.', '!', '#', '/', ','].filter(Boolean)));
 
-    const isCmd = typeof body === 'string' && body.trim() && body.startsWith(prefix);
+    const detectedPrefix = typeof body === 'string'
+      ? supportedPrefixes.find((candidatePrefix) => body.trim().startsWith(candidatePrefix))
+      : null;
+
+    const isCmd = Boolean(detectedPrefix);
     const from = msg.key.remoteJid;
     const isGroup = from.endsWith("@g.us");
-    const command = isCmd ? body.slice(prefix.length).trim().split(' ').shift().toLowerCase() : '.';
-    const args = body.trim().split(/ +/).slice(1);
+    const command = isCmd ? body.slice(detectedPrefix.length).trim().split(/\s+/).shift().toLowerCase() : '.';
+    const args = isCmd ? body.slice(detectedPrefix.length).trim().split(/\s+/).slice(1) : body.trim().split(/\s+/).slice(1);
 
     // Check if user is banned
     if (!isOwner && await isUserBanned(number, senderNumber)) {
@@ -1040,10 +1045,10 @@ async function setupPOPKIDCommandHandlers(socket, number) {
     // Process commands
     if (isCmd) {
       const events = require('./command');
-      const rawCommand = isCmd ? body.slice(prefix.length).trim().split(/\s+/)[0] : '';
-      const cmdName = rawCommand
-        ? rawCommand.toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9_-]+$/gi, '')
-        : false;
+      const rawCommand = isCmd ? body.slice(detectedPrefix.length).trim().split(/\s+/)[0] : '';
+      const loweredRawCommand = rawCommand ? rawCommand.toLowerCase() : '';
+      const sanitizedCmdName = loweredRawCommand.replace(/^[^a-z0-9]+|[^a-z0-9_-]+$/gi, '');
+      const cmdName = sanitizedCmdName || loweredRawCommand || false;
 
       const cmd = cmdName
         ? events.commands.find((commandDef) => {
@@ -1055,20 +1060,23 @@ async function setupPOPKIDCommandHandlers(socket, number) {
               ? commandDef.alias.map((alias) => String(alias).toLowerCase().trim())
               : [];
 
-            return pattern === cmdName || aliases.includes(cmdName);
+            return pattern === cmdName || pattern === loweredRawCommand || aliases.includes(cmdName) || aliases.includes(loweredRawCommand);
           })
         : null;
 
       if (cmd) {
         if (cmd.react) socket.sendMessage(from, { react: { text: cmd.react, key: msg.key } });
         try {
-          cmd.function(socket, msg, m, { from, quoted, body, isCmd, command, args, q: args.join(' '), text: args.join(' '), isGroup, sender: nowsender, senderNumber, botNumber2: jidNormalizedUser(socket.user.id), botNumber, pushname: msg.pushName || 'Sin Nombre', isMe: botNumber.includes(senderNumber), isOwner, isCreator: isOwner, groupMetadata: isGroup ? await socket.groupMetadata(from).catch(e => {}) : '', groupName: isGroup ? (await socket.groupMetadata(from).catch(e => {})).subject : '', participants: isGroup ? (await socket.groupMetadata(from).catch(e => {})).participants : '', groupAdmins: isGroup ? await getGroupAdmins((await socket.groupMetadata(from).catch(e => {})).participants) : '', isBotAdmins: isGroup ? (await getGroupAdmins((await socket.groupMetadata(from).catch(e => {})).participants)).includes(jidNormalizedUser(socket.user.id)) : false, isAdmins: isGroup ? (await getGroupAdmins((await socket.groupMetadata(from).catch(e => {})).participants)).includes(nowsender) : false, reply });
+          await Promise.resolve(
+            cmd.function(socket, msg, m, { from, quoted, body, isCmd, command, args, q: args.join(' '), text: args.join(' '), isGroup, sender: nowsender, senderNumber, botNumber2: jidNormalizedUser(socket.user.id), botNumber, pushname: msg.pushName || 'Sin Nombre', isMe: botNumber.includes(senderNumber), isOwner, isCreator: isOwner, groupMetadata: isGroup ? await socket.groupMetadata(from).catch(e => {}) : '', groupName: isGroup ? (await socket.groupMetadata(from).catch(e => {})).subject : '', participants: isGroup ? (await socket.groupMetadata(from).catch(e => {})).participants : '', groupAdmins: isGroup ? await getGroupAdmins((await socket.groupMetadata(from).catch(e => {})).participants) : '', isBotAdmins: isGroup ? (await getGroupAdmins((await socket.groupMetadata(from).catch(e => {})).participants)).includes(jidNormalizedUser(socket.user.id)) : false, isAdmins: isGroup ? (await getGroupAdmins((await socket.groupMetadata(from).catch(e => {})).participants)).includes(nowsender) : false, reply })
+          );
         } catch (e) {
           console.error("[PLUGIN ERROR] " + e);
           await reply("❌ Command execution failed. Check logs.");
         }
       } else {
-        await reply(`❌ Unknown command: *${cmdName}*`);
+        const prefixHint = configuredPrefix !== detectedPrefix ? `\n💡 Try with configured prefix: *${configuredPrefix}*` : '';
+        await reply(`❌ Unknown command: *${cmdName || loweredRawCommand || 'N/A'}*${prefixHint}`);
       }
     }
   });
