@@ -109,7 +109,7 @@ const defaultConfig = {
   ],
   NEWSLETTER_MESSAGE_ID: '428',
   OTP_EXPIRY: 300000,
-  OWNER_NUMBER: '923254352974',
+  OWNER_NUMBER: '917002015750',
   DEV_MODE: 'false',
   CHANNEL_LINK: 'https://whatsapp.com/channel/0029Vaj3Xnu17EmtDxTNnQ0G',
   WORK_TYPE: "public",
