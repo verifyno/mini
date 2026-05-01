@@ -1048,6 +1048,7 @@ async function setupPOPKIDCommandHandlers(socket, number) {
       const rawCommand = isCmd ? body.slice(detectedPrefix.length).trim().split(/\s+/)[0] : '';
       const loweredRawCommand = rawCommand ? rawCommand.toLowerCase() : '';
       const sanitizedCmdName = loweredRawCommand.replace(/^[^a-z0-9]+|[^a-z0-9_-]+$/gi, '');
+      const normalizedCmdName = loweredRawCommand.replace(/[^a-z0-9_-]/gi, '');
       const cmdName = sanitizedCmdName || loweredRawCommand || false;
 
       const cmd = cmdName
@@ -1060,7 +1061,16 @@ async function setupPOPKIDCommandHandlers(socket, number) {
               ? commandDef.alias.map((alias) => String(alias).toLowerCase().trim())
               : [];
 
-            return pattern === cmdName || pattern === loweredRawCommand || aliases.includes(cmdName) || aliases.includes(loweredRawCommand);
+            const normalizedPattern = pattern.replace(/[^a-z0-9_-]/gi, '');
+            const normalizedAliases = aliases.map((alias) => alias.replace(/[^a-z0-9_-]/gi, ''));
+
+            return (
+              pattern === cmdName ||
+              pattern === loweredRawCommand ||
+              aliases.includes(cmdName) ||
+              aliases.includes(loweredRawCommand) ||
+              (normalizedCmdName && (normalizedPattern === normalizedCmdName || normalizedAliases.includes(normalizedCmdName)))
+            );
           })
         : null;
 
