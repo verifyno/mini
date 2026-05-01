@@ -4,9 +4,16 @@
   "repository": "",
   "logo": "",
   "keywords": ["node", "whatsapp", "bot", "baileys"],
+  "addons": [
+    "heroku-postgresql:mini"
+  ],
   "env": {
+    "DATABASE_URL": {
+      "description": "Heroku Postgres URL. Auto-set when heroku-postgresql addon is attached.",
+      "required": false
+    },
     "MONGODB_URI": {
-      "description": "MongoDB connection string used by the pairing/session logic.",
+      "description": "MongoDB connection string used by the pairing/session logic (optional if you use Postgres-backed features only).",
       "required": false
     }
   }
