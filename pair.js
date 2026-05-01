@@ -1040,9 +1040,25 @@ async function setupPOPKIDCommandHandlers(socket, number) {
     // Process commands
     if (isCmd) {
       const events = require('./command');
-      const cmdName = isCmd ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase() : false;
-      const cmd = events.commands.find((cmd) => cmd.pattern === (cmdName)) || events.commands.find((cmd) => cmd.alias && cmd.alias.includes(cmdName));
-      
+      const rawCommand = isCmd ? body.slice(prefix.length).trim().split(/\s+/)[0] : '';
+      const cmdName = rawCommand
+        ? rawCommand.toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9_-]+$/gi, '')
+        : false;
+
+      const cmd = cmdName
+        ? events.commands.find((commandDef) => {
+            const pattern = typeof commandDef.pattern === 'string'
+              ? commandDef.pattern.toLowerCase().trim()
+              : '';
+
+            const aliases = Array.isArray(commandDef.alias)
+              ? commandDef.alias.map((alias) => String(alias).toLowerCase().trim())
+              : [];
+
+            return pattern === cmdName || aliases.includes(cmdName);
+          })
+        : null;
+
       if (cmd) {
         if (cmd.react) socket.sendMessage(from, { react: { text: cmd.react, key: msg.key } });
         try {
