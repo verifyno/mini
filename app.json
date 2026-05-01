@@ -1,0 +1,13 @@
+{
+  "name": "POPKID-MD",
+  "description": "WhatsApp bot + pairing web endpoint",
+  "repository": "",
+  "logo": "",
+  "keywords": ["node", "whatsapp", "bot", "baileys"],
+  "env": {
+    "MONGODB_URI": {
+      "description": "MongoDB connection string used by the pairing/session logic.",
+      "required": false
+    }
+  }
+}
